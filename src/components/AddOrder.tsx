@@ -12,32 +12,76 @@ const AddOrder: React.FC = () => {
     instructions: '',
     assignedTo: '',
     dueDate: '',
-    measurements: {
-      chest: '',
-      waist: '',
-      length: '',
-      sleeve: '',
-    },
+    measurements: {} as Record<string, { inches: string; cm: string }>,
   });
 
   const [success, setSuccess] = useState(false);
 
+  // Get measurement fields based on garment type
+  const getMeasurementFields = (garmentType: string) => {
+    const lowerType = garmentType.toLowerCase();
+    
+    if (lowerType.includes('shirt') || lowerType.includes('blouse')) {
+      return [
+        { key: 'CRL', label: 'Collar (CRL)' },
+        { key: 'CP', label: 'Chest Point (CP)' },
+        { key: 'CT', label: 'Chest Top (CT)' },
+        { key: 'CH', label: 'Chest Height (CH)' },
+        { key: 'LT', label: 'Length Top (LT)' },
+        { key: 'LM', label: 'Length Middle (LM)' },
+        { key: 'CM', label: 'Cuff Measurement (CM)' },
+      ];
+    } else if (lowerType.includes('pant') || lowerType.includes('trouser') || lowerType.includes('short')) {
+      return [
+        { key: 'T', label: 'Thigh (T)' },
+        { key: 'BC', label: 'Bottom Cuff (BC)' },
+        { key: 'CS', label: 'Crotch Seam (CS)' },
+        { key: 'L', label: 'Length (L)' },
+        { key: 'waist', label: 'Waist' },
+      ];
+    } else if (lowerType.includes('dress') || lowerType.includes('gown')) {
+      return [
+        { key: 'CRL', label: 'Collar (CRL)' },
+        { key: 'P', label: 'Bust Point (P)' },
+        { key: 'T', label: 'Thigh (T)' },
+        { key: 'BC', label: 'Bottom Cuff (BC)' },
+        { key: 'L', label: 'Length (L)' },
+        { key: 'LM', label: 'Length Middle (LM)' },
+        { key: 'CM', label: 'Cuff Measurement (CM)' },
+        { key: 'CSG', label: 'Chest Seam Gap (CSG)' },
+      ];
+    } else {
+      // Default measurements for other garments
+      return [
+        { key: 'chest', label: 'Chest' },
+        { key: 'waist', label: 'Waist' },
+        { key: 'L', label: 'Length (L)' },
+      ];
+    }
+  };
+
+  const measurementFields = getMeasurementFields(formData.garmentType);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     const assignedTailor = tailors.find(t => t.id === formData.assignedTo);
     if (!assignedTailor) return;
 
+    // Convert measurements to proper format
+    const processedMeasurements: Record<string, { inches?: number; cm?: number }> = {};
+    Object.entries(formData.measurements).forEach(([key, value]) => {
+      if (value && (value.inches || value.cm)) {
+        processedMeasurements[key] = {
+          inches: value.inches ? Number(value.inches) : undefined,
+          cm: value.cm ? Number(value.cm) : undefined,
+        };
+      }
+    });
     const orderData = {
       ...formData,
       assignedToName: assignedTailor.name,
       status: 'pending' as const,
-      measurements: {
-        chest: formData.measurements.chest ? Number(formData.measurements.chest) : undefined,
-        waist: formData.measurements.waist ? Number(formData.measurements.waist) : undefined,
-        length: formData.measurements.length ? Number(formData.measurements.length) : undefined,
-        sleeve: formData.measurements.sleeve ? Number(formData.measurements.sleeve) : undefined,
-      },
+      measurements: processedMeasurements,
     };
 
     addOrder(orderData);
@@ -52,12 +96,7 @@ const AddOrder: React.FC = () => {
       instructions: '',
       assignedTo: '',
       dueDate: '',
-      measurements: {
-        chest: '',
-        waist: '',
-        length: '',
-        sleeve: '',
-      },
+      measurements: {},
     });
 
     setTimeout(() => setSuccess(false), 3000);
@@ -66,13 +105,16 @@ const AddOrder: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    if (name.startsWith('measurements.')) {
-      const measurementKey = name.split('.')[1];
+    if (name.startsWith('measurements.') && name.includes('.')) {
+      const [, measurementKey, unit] = name.split('.');
       setFormData(prev => ({
         ...prev,
         measurements: {
           ...prev.measurements,
-          [measurementKey]: value,
+          [measurementKey]: {
+            ...prev.measurements[measurementKey],
+            [unit]: value,
+          },
         },
       }));
     } else {
@@ -222,67 +264,60 @@ const AddOrder: React.FC = () => {
 
           {/* Measurements */}
           <div>
-            <h4 className="text-lg font-medium text-gray-900 mb-4">Measurements (inches)</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div>
-                <label htmlFor="measurements.chest" className="block text-sm font-medium text-gray-700 mb-1">
-                  Chest
-                </label>
-                <input
-                  type="number"
-                  id="measurements.chest"
-                  name="measurements.chest"
-                  value={formData.measurements.chest}
-                  onChange={handleInputChange}
-                  step="0.5"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
+            <h4 className="text-lg font-medium text-gray-900 mb-4">
+              Measurements {formData.garmentType && `for ${formData.garmentType}`}
+            </h4>
+            
+            {!formData.garmentType ? (
+              <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+                <p className="text-gray-500">Please select a garment type first to see relevant measurement fields</p>
               </div>
-
-              <div>
-                <label htmlFor="measurements.waist" className="block text-sm font-medium text-gray-700 mb-1">
-                  Waist
-                </label>
-                <input
-                  type="number"
-                  id="measurements.waist"
-                  name="measurements.waist"
-                  value={formData.measurements.waist}
-                  onChange={handleInputChange}
-                  step="0.5"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
+            ) : (
+              <div className="space-y-4">
+                {measurementFields.map((field) => (
+                  <div key={field.key} className="border border-gray-200 rounded-lg p-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      {field.label}
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Inches</label>
+                        <input
+                          type="number"
+                          name={`measurements.${field.key}.inches`}
+                          value={formData.measurements[field.key]?.inches || ''}
+                          onChange={handleInputChange}
+                          step="0.25"
+                          placeholder="0.00"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Centimeters</label>
+                        <input
+                          type="number"
+                          name={`measurements.${field.key}.cm`}
+                          value={formData.measurements[field.key]?.cm || ''}
+                          onChange={handleInputChange}
+                          step="0.5"
+                          placeholder="0.0"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-
-              <div>
-                <label htmlFor="measurements.length" className="block text-sm font-medium text-gray-700 mb-1">
-                  Length
-                </label>
-                <input
-                  type="number"
-                  id="measurements.length"
-                  name="measurements.length"
-                  value={formData.measurements.length}
-                  onChange={handleInputChange}
-                  step="0.5"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
+            )}
+            
+            {formData.garmentType && (
+              <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm text-blue-700">
+                  <strong>Note:</strong> You can fill in measurements in inches, centimeters, or both. 
+                  At least one unit should be provided for each measurement.
+                </p>
               </div>
-
-              <div>
-                <label htmlFor="measurements.sleeve" className="block text-sm font-medium text-gray-700 mb-1">
-                  Sleeve
-                </label>
-                <input
-                  type="number"
-                  id="measurements.sleeve"
-                  name="measurements.sleeve"
-                  value={formData.measurements.sleeve}
-                  onChange={handleInputChange}
-                  step="0.5"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
-              </div>
+            )}
             </div>
           </div>
 

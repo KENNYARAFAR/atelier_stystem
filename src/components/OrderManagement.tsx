@@ -124,7 +124,11 @@ const OrderManagement: React.FC = () => {
                                 {Object.entries(order.measurements).map(([key, value]) => (
                                   <div key={key} className="flex justify-between">
                                     <span className="capitalize text-gray-600">{key}:</span>
-                                    <span className="font-medium">{value}"</span>
+                                    <span className="font-medium">
+                                      {value?.inches ? `${value.inches}"` : ''} 
+                                      {value?.inches && value?.cm ? ' / ' : ''}
+                                      {value?.cm ? `${value.cm}cm` : ''}
+                                    </span>
                                   </div>
                                 ))}
                               </div>

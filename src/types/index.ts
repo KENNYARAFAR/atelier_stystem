@@ -13,11 +13,29 @@ export interface Order {
   garmentType: string;
   fabricType: string;
   measurements: {
-    chest?: number;
-    waist?: number;
-    length?: number;
-    sleeve?: number;
-    [key: string]: number | undefined;
+    // Shirt measurements
+    CRL?: { inches?: number; cm?: number }; // Collar
+    CP?: { inches?: number; cm?: number };  // Chest Point
+    CT?: { inches?: number; cm?: number };  // Chest Top
+    CH?: { inches?: number; cm?: number };  // Chest Height
+    LT?: { inches?: number; cm?: number };  // Length Top
+    LM?: { inches?: number; cm?: number };  // Length Middle
+    CM?: { inches?: number; cm?: number };  // Cuff Measurement
+    
+    // Pants/Shorts measurements
+    T?: { inches?: number; cm?: number };   // Thigh
+    BC?: { inches?: number; cm?: number };  // Bottom Cuff
+    CS?: { inches?: number; cm?: number };  // Crotch Seam
+    L?: { inches?: number; cm?: number };   // Length
+    
+    // Dress measurements
+    P?: { inches?: number; cm?: number };   // Bust Point
+    CSG?: { inches?: number; cm?: number }; // Chest Seam Gap
+    
+    // Common measurements
+    waist?: { inches?: number; cm?: number };
+    chest?: { inches?: number; cm?: number };
+    [key: string]: { inches?: number; cm?: number } | undefined;
   };
   style: string;
   instructions: string;

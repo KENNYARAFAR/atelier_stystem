@@ -205,7 +205,11 @@ const Dashboard: React.FC = () => {
                       <p className="font-medium mb-1">Measurements:</p>
                       <div className="text-xs space-y-1">
                         {Object.entries(order.measurements).map(([key, value]) => (
-                          <p key={key}>{key}: {value}"</p>
+                          <p key={key}>
+                            {key}: {value?.inches ? `${value.inches}"` : ''} 
+                            {value?.inches && value?.cm ? ' / ' : ''}
+                            {value?.cm ? `${value.cm}cm` : ''}
+                          </p>
                         ))}
                       </div>
                     </div>
