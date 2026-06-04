@@ -1,39 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { User, UserPlus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
+import { User as UserIcon, UserPlus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
+
+interface UserData {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'tailor';
+  isActive: boolean;
+  createdAt: string;
+  lastLogin?: string;
+}
 
 const UserManagement: React.FC = () => {
-  const { user } = useAuth();
+  const { user: currentUser } = useAuth();
+  const [users, setUsers] = useState<UserData[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [users, setUsers] = useState([
-    {
-      id: '1',
-      name: 'Admin User',
-      email: 'admin@tailoring.com',
-      role: 'admin',
-      isActive: true,
-      createdAt: '2025-01-01',
-      lastLogin: '2025-01-10',
-    },
-    {
-      id: '2',
-      name: 'John Tailor',
-      email: 'john@tailoring.com',
-      role: 'tailor',
-      isActive: true,
-      createdAt: '2025-01-02',
-      lastLogin: '2025-01-10',
-    },
-    {
-      id: '3',
-      name: 'Sarah Seamstress',
-      email: 'sarah@tailoring.com',
-      role: 'tailor',
-      isActive: true,
-      createdAt: '2025-01-03',
-      lastLogin: '2025-01-09',
-    },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -42,33 +26,96 @@ const UserManagement: React.FC = () => {
     password: '',
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newUser = {
-      id: Date.now().toString(),
-      ...formData,
-      isActive: true,
-      createdAt: new Date().toISOString().split('T')[0],
-      lastLogin: 'Never',
+  const getHeaders = useCallback(() => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
     };
-    setUsers(prev => [...prev, newUser]);
-    setFormData({ name: '', email: '', role: 'tailor', password: '' });
-    setShowAddForm(false);
-  };
+  }, []);
 
-  const toggleUserStatus = (userId: string) => {
-    setUsers(prev => prev.map(u => 
-      u.id === userId ? { ...u, isActive: !u.isActive } : u
-    ));
-  };
+  const fetchUsers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/users', { headers: getHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setUsers(data);
+      } else {
+        setError('Failed to fetch users');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Error fetching users');
+    } finally {
+      setLoading(false);
+    }
+  }, [getHeaders]);
 
-  const deleteUser = (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      setUsers(prev => prev.filter(u => u.id !== userId));
+  useEffect(() => {
+    if (currentUser?.role === 'admin') {
+      fetchUsers();
+    }
+  }, [currentUser, fetchUsers]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    try {
+      const res = await fetch('/api/users', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(formData),
+      });
+
+      if (res.ok) {
+        const newUser = await res.json();
+        setUsers(prev => [newUser, ...prev]);
+        setFormData({ name: '', email: '', role: 'tailor', password: '' });
+        setShowAddForm(false);
+      } else {
+        const errData = await res.json();
+        setError(errData.message || 'Failed to create user');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Error creating user');
     }
   };
 
-  if (user?.role !== 'admin') {
+  const toggleUserStatus = async (userId: string) => {
+    try {
+      const res = await fetch(`/api/users/${userId}/status`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+      });
+      if (res.ok) {
+        const updatedUser = await res.json();
+        setUsers(prev => prev.map(u => u.id === userId ? updatedUser : u));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const deleteUser = async (userId: string) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        const res = await fetch(`/api/users/${userId}`, {
+          method: 'DELETE',
+          headers: getHeaders(),
+        });
+        if (res.ok) {
+          setUsers(prev => prev.filter(u => u.id !== userId));
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+  };
+
+  if (currentUser?.role !== 'admin') {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Access denied. Admin privileges required.</p>
@@ -92,16 +139,22 @@ const UserManagement: React.FC = () => {
         </button>
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Total Users</p>
+              <p className="text-sm font-medium text-gray-600">Total Tailors</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">{users.length}</p>
             </div>
             <div className="bg-blue-500 p-3 rounded-lg">
-              <User className="h-6 w-6 text-white" />
+              <UserIcon className="h-6 w-6 text-white" />
             </div>
           </div>
         </div>
@@ -109,7 +162,7 @@ const UserManagement: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Active Users</p>
+              <p className="text-sm font-medium text-gray-600">Active Tailors</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
                 {users.filter(u => u.isActive).length}
               </p>
@@ -123,27 +176,13 @@ const UserManagement: React.FC = () => {
         <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600">Admins</p>
+              <p className="text-sm font-medium text-gray-600">Inactive Tailors</p>
               <p className="text-3xl font-bold text-gray-900 mt-1">
-                {users.filter(u => u.role === 'admin').length}
-              </p>
-            </div>
-            <div className="bg-purple-500 p-3 rounded-lg">
-              <UserPlus className="h-6 w-6 text-white" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Tailors</p>
-              <p className="text-3xl font-bold text-gray-900 mt-1">
-                {users.filter(u => u.role === 'tailor').length}
+                {users.filter(u => !u.isActive).length}
               </p>
             </div>
             <div className="bg-orange-500 p-3 rounded-lg">
-              <User className="h-6 w-6 text-white" />
+              <EyeOff className="h-6 w-6 text-white" />
             </div>
           </div>
         </div>
@@ -229,86 +268,90 @@ const UserManagement: React.FC = () => {
       {/* Users Table */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100">
         <div className="p-6 border-b border-gray-100">
-          <h3 className="text-lg font-semibold text-gray-900">All Users</h3>
+          <h3 className="text-lg font-semibold text-gray-900">All Tailors</h3>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Last Login
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {users.map((userData) => (
-                <tr key={userData.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{userData.name}</div>
-                      <div className="text-sm text-gray-500">{userData.email}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      userData.role === 'admin' 
-                        ? 'bg-purple-100 text-purple-800' 
-                        : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {userData.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
-                      userData.isActive 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {userData.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-900">
-                    {userData.lastLogin === 'Never' ? 'Never' : new Date(userData.lastLogin).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => toggleUserStatus(userData.id)}
-                        className={`${
-                          userData.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
-                        } transition-colors`}
-                        title={userData.isActive ? 'Deactivate' : 'Activate'}
-                      >
-                        {userData.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                      <button className="text-indigo-600 hover:text-indigo-900 transition-colors">
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => deleteUser(userData.id)}
-                        className="text-red-600 hover:text-red-900 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
+        
+        {loading ? (
+          <p className="text-gray-500 text-center py-8">Loading users...</p>
+        ) : users.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">No tailors registered yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Role
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Created At
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {users.map((userData) => (
+                  <tr key={userData.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{userData.name}</div>
+                        <div className="text-sm text-gray-500">{userData.email}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                        userData.role === 'admin' 
+                          ? 'bg-purple-100 text-purple-800' 
+                          : 'bg-blue-100 text-blue-800'
+                      }`}>
+                        {userData.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                        userData.isActive 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}>
+                        {userData.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
+                      {new Date(userData.createdAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => toggleUserStatus(userData.id)}
+                          className={`${
+                            userData.isActive ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'
+                          } transition-colors`}
+                          title={userData.isActive ? 'Deactivate' : 'Activate'}
+                        >
+                          {userData.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                        <button
+                          onClick={() => deleteUser(userData.id)}
+                          className="text-red-600 hover:text-red-900 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

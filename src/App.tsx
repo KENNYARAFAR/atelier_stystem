@@ -14,6 +14,8 @@ import Notifications from './components/Notifications';
 import Analytics from './components/Analytics';
 import Settings from './components/Settings';
 import RegistrationManagement from './components/RegistrationManagement';
+import TailorOrders from './components/TailorOrders';
+import TailorProfile from './components/TailorProfile';
 
 const AppContent: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -47,6 +49,10 @@ const AppContent: React.FC = () => {
         return <Analytics />;
       case 'settings':
         return <Settings />;
+      case 'my-orders':
+        return <TailorOrders />;
+      case 'my-profile':
+        return <TailorProfile />;
       default:
         return <Dashboard />;
     }

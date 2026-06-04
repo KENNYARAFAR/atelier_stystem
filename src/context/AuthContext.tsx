@@ -9,63 +9,79 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users for demo
-const mockUsers: User[] = [
-  {
-    id: '1',
-    name: 'Admin User',
-    email: 'admin@tailoring.com',
-    role: 'admin',
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'John Tailor',
-    email: 'john@tailoring.com',
-    role: 'tailor',
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Sarah Seamstress',
-    email: 'sarah@tailoring.com',
-    role: 'tailor',
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  },
-];
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
   });
 
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      setAuthState({
-        user: JSON.parse(savedUser),
-        isAuthenticated: true,
-      });
-    }
+    const loadUser = async () => {
+      const token = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('currentUser');
+      
+      if (token && savedUser) {
+        try {
+          // Verify token against backend
+          const res = await fetch('/api/auth/me', {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (res.ok) {
+            const user = await res.json();
+            setAuthState({
+              user,
+              isAuthenticated: true,
+            });
+            localStorage.setItem('currentUser', JSON.stringify(user));
+          } else {
+            // Token is invalid/expired
+            logout();
+          }
+        } catch (error) {
+          console.error('Error verifying token:', error);
+          // If offline or server error, fallback to saved storage
+          setAuthState({
+            user: JSON.parse(savedUser),
+            isAuthenticated: true,
+          });
+        }
+      }
+      setLoading(false);
+    };
+
+    loadUser();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    // Mock authentication - in real app, this would call an API
-    const user = mockUsers.find(u => u.email === email);
-    
-    if (user && password === 'password123') {
-      setAuthState({
-        user,
-        isAuthenticated: true,
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
-      localStorage.setItem('currentUser', JSON.stringify(user));
-      return true;
+
+      if (res.ok) {
+        const data = await res.json();
+        setAuthState({
+          user: data.user,
+          isAuthenticated: true,
+        });
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('currentUser', JSON.stringify(data.user));
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
+      return false;
     }
-    return false;
   };
 
   const logout = () => {
@@ -73,28 +89,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       user: null,
       isAuthenticated: false,
     });
+    localStorage.removeItem('token');
     localStorage.removeItem('currentUser');
   };
 
   const register = async (registrationData: any): Promise<boolean> => {
-    // In a real app, this would call an API to submit registration
-    // For demo, we'll save to localStorage and return success
-    const existingRegistrations = JSON.parse(localStorage.getItem('registrationRequests') || '[]');
-    const newRegistration = {
-      id: Date.now().toString(),
-      ...registrationData,
-      status: 'pending',
-      createdAt: new Date().toISOString(),
-    };
-    
-    existingRegistrations.push(newRegistration);
-    localStorage.setItem('registrationRequests', JSON.stringify(existingRegistrations));
-    return true;
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(registrationData),
+      });
+
+      return res.ok;
+    } catch (error) {
+      console.error('Registration error:', error);
+      return false;
+    }
   };
 
   return (
     <AuthContext.Provider value={{ ...authState, login, logout, register }}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };

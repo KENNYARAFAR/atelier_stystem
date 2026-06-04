@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { Order, DailyReport, User, Notification, Customer, Inventory, RegistrationRequest } from '../types';
+import { useAuth } from './AuthContext';
 
 interface DataContextType {
   orders: Order[];
@@ -26,318 +27,255 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
-// Mock data
-const mockTailors: User[] = [
-  {
-    id: '2',
-    name: 'John Tailor',
-    email: 'john@tailoring.com',
-    role: 'tailor',
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Sarah Seamstress',
-    email: 'sarah@tailoring.com',
-    role: 'tailor',
-    isActive: true,
-    createdAt: new Date().toISOString(),
-  },
-];
-
-const mockOrders: Order[] = [
-  {
-    id: '1',
-    customerName: 'Alice Johnson',
-    garmentType: 'Business Suit',
-    fabricType: 'Wool Blend',
-    measurements: {
-      chest: { inches: 38, cm: 96.5 },
-      waist: { inches: 32, cm: 81.3 },
-      L: { inches: 42, cm: 106.7 },
-      CM: { inches: 24, cm: 61 },
-    },
-    style: 'Classic fit with notched lapels',
-    instructions: 'Customer prefers a conservative cut. Pay attention to shoulder alignment.',
-    assignedTo: '2',
-    assignedToName: 'John Tailor',
-    status: 'in-progress',
-    dueDate: '2025-01-20',
-    createdAt: '2025-01-10T10:00:00Z',
-    updatedAt: '2025-01-10T10:00:00Z',
-  },
-  {
-    id: '2',
-    customerName: 'Bob Smith',
-    garmentType: 'Evening Dress',
-    fabricType: 'Silk',
-    measurements: {
-      chest: { inches: 34, cm: 86.4 },
-      waist: { inches: 28, cm: 71.1 },
-      L: { inches: 60, cm: 152.4 },
-      P: { inches: 36, cm: 91.4 },
-    },
-    style: 'A-line with beaded details',
-    instructions: 'Handle silk carefully. Customer wants subtle beading on the bodice.',
-    assignedTo: '3',
-    assignedToName: 'Sarah Seamstress',
-    status: 'pending',
-    dueDate: '2025-01-25',
-    createdAt: '2025-01-10T14:00:00Z',
-    updatedAt: '2025-01-10T14:00:00Z',
-  },
-];
-
-const mockReports: DailyReport[] = [
-  {
-    id: '1',
-    userId: '2',
-    userName: 'John Tailor',
-    orderId: '1',
-    orderTitle: 'Business Suit for Alice Johnson',
-    progress: 60,
-    workDone: 'Completed cutting and started stitching the jacket body',
-    challenges: 'Fabric alignment required extra attention',
-    estimatedCompletion: '2025-01-18',
-    date: '2025-01-10',
-    createdAt: '2025-01-10T18:00:00Z',
-  },
-];
-
-const mockNotifications: Notification[] = [
-  {
-    id: '1',
-    userId: '2',
-    title: 'New Order Assigned',
-    message: 'You have been assigned a new Business Suit order for Alice Johnson',
-    type: 'info',
-    isRead: false,
-    createdAt: '2025-01-10T10:00:00Z',
-  },
-];
-
-const mockCustomers: Customer[] = [
-  {
-    id: '1',
-    name: 'Alice Johnson',
-    email: 'alice@email.com',
-    phone: '+1-555-0123',
-    address: '123 Main St, City, State 12345',
-    notes: 'Prefers conservative cuts, regular customer',
-    createdAt: '2025-01-01T10:00:00Z',
-  },
-  {
-    id: '2',
-    name: 'Bob Smith',
-    email: 'bob@email.com',
-    phone: '+1-555-0124',
-    address: '456 Oak Ave, City, State 12345',
-    notes: 'First-time customer, needs extra attention to detail',
-    createdAt: '2025-01-05T14:00:00Z',
-  },
-];
-
-const mockInventory: Inventory[] = [
-  {
-    id: '1',
-    itemName: 'Wool Blend Fabric',
-    category: 'fabric',
-    quantity: 50,
-    unit: 'yards',
-    minStock: 10,
-    supplier: 'Premium Fabrics Co.',
-    cost: 25.99,
-    lastUpdated: '2025-01-10T10:00:00Z',
-  },
-  {
-    id: '2',
-    itemName: 'Silk Thread - Black',
-    category: 'thread',
-    quantity: 25,
-    unit: 'spools',
-    minStock: 5,
-    supplier: 'Thread Masters',
-    cost: 3.50,
-    lastUpdated: '2025-01-10T10:00:00Z',
-  },
-];
-
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [reports, setReports] = useState<DailyReport[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [inventory, setInventory] = useState<Inventory[]>([]);
   const [registrationRequests, setRegistrationRequests] = useState<RegistrationRequest[]>([]);
-  const [tailors] = useState<User[]>(mockTailors);
+  const [tailors, setTailors] = useState<User[]>([]);
 
-  useEffect(() => {
-    const savedOrders = localStorage.getItem('orders');
-    const savedReports = localStorage.getItem('reports');
-    const savedNotifications = localStorage.getItem('notifications');
-    const savedCustomers = localStorage.getItem('customers');
-    const savedInventory = localStorage.getItem('inventory');
-    const savedRegistrations = localStorage.getItem('registrationRequests');
-    
-    if (savedOrders) {
-      setOrders(JSON.parse(savedOrders));
-    } else {
-      setOrders(mockOrders);
-    }
-    
-    if (savedReports) {
-      setReports(JSON.parse(savedReports));
-    } else {
-      setReports(mockReports);
-    }
-    
-    if (savedNotifications) {
-      setNotifications(JSON.parse(savedNotifications));
-    } else {
-      setNotifications(mockNotifications);
-    }
-    
-    if (savedCustomers) {
-      setCustomers(JSON.parse(savedCustomers));
-    } else {
-      setCustomers(mockCustomers);
-    }
-    
-    if (savedInventory) {
-      setInventory(JSON.parse(savedInventory));
-    } else {
-      setInventory(mockInventory);
-    }
-    
-    if (savedRegistrations) {
-      setRegistrationRequests(JSON.parse(savedRegistrations));
-    }
+  const getHeaders = useCallback(() => {
+    const token = localStorage.getItem('token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`,
+    };
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('orders', JSON.stringify(orders));
-  }, [orders]);
+  const fetchOrders = useCallback(async () => {
+    try {
+      const res = await fetch('/api/orders', { headers: getHeaders() });
+      if (res.ok) setOrders(await res.json());
+    } catch (e) {
+      console.error('Error fetching orders:', e);
+    }
+  }, [getHeaders]);
+
+  const fetchReports = useCallback(async () => {
+    try {
+      const res = await fetch('/api/reports', { headers: getHeaders() });
+      if (res.ok) setReports(await res.json());
+    } catch (e) {
+      console.error('Error fetching reports:', e);
+    }
+  }, [getHeaders]);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch('/api/notifications', { headers: getHeaders() });
+      if (res.ok) setNotifications(await res.json());
+    } catch (e) {
+      console.error('Error fetching notifications:', e);
+    }
+  }, [getHeaders]);
+
+  const fetchCustomers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/customers', { headers: getHeaders() });
+      if (res.ok) setCustomers(await res.json());
+    } catch (e) {
+      console.error('Error fetching customers:', e);
+    }
+  }, [getHeaders]);
+
+  const fetchInventory = useCallback(async () => {
+    try {
+      const res = await fetch('/api/inventory', { headers: getHeaders() });
+      if (res.ok) setInventory(await res.json());
+    } catch (e) {
+      console.error('Error fetching inventory:', e);
+    }
+  }, [getHeaders]);
+
+  const fetchTailors = useCallback(async () => {
+    try {
+      const res = await fetch('/api/users/tailors', { headers: getHeaders() });
+      if (res.ok) setTailors(await res.json());
+    } catch (e) {
+      console.error('Error fetching tailors:', e);
+    }
+  }, [getHeaders]);
+
+  const fetchRegistrations = useCallback(async () => {
+    try {
+      const res = await fetch('/api/registrations', { headers: getHeaders() });
+      if (res.ok) setRegistrationRequests(await res.json());
+    } catch (e) {
+      console.error('Error fetching registrations:', e);
+    }
+  }, [getHeaders]);
 
   useEffect(() => {
-    localStorage.setItem('reports', JSON.stringify(reports));
-  }, [reports]);
+    if (isAuthenticated) {
+      fetchOrders();
+      fetchReports();
+      fetchNotifications();
+      fetchCustomers();
+      fetchInventory();
+      fetchTailors();
+      if (user?.role === 'admin') {
+        fetchRegistrations();
+      }
+    }
+  }, [isAuthenticated, user?.role, fetchOrders, fetchReports, fetchNotifications, fetchCustomers, fetchInventory, fetchTailors, fetchRegistrations]);
 
-  useEffect(() => {
-    localStorage.setItem('notifications', JSON.stringify(notifications));
-  }, [notifications]);
-
-  useEffect(() => {
-    localStorage.setItem('customers', JSON.stringify(customers));
-  }, [customers]);
-
-  useEffect(() => {
-    localStorage.setItem('inventory', JSON.stringify(inventory));
-  }, [inventory]);
-
-  useEffect(() => {
-    localStorage.setItem('registrationRequests', JSON.stringify(registrationRequests));
-  }, [registrationRequests]);
-
-  const addOrder = (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newOrder: Order = {
-      ...orderData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    setOrders(prev => [...prev, newOrder]);
-    
-    // Add notification for assigned tailor
-    const notification: Omit<Notification, 'id' | 'createdAt'> = {
-      userId: orderData.assignedTo,
-      title: 'New Order Assigned',
-      message: `You have been assigned a new ${orderData.garmentType} order for ${orderData.customerName}`,
-      type: 'info',
-      isRead: false,
-    };
-    addNotification(notification);
+  const addOrder = async (orderData: Omit<Order, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(orderData),
+      });
+      if (res.ok) {
+        const newOrder = await res.json();
+        setOrders(prev => [newOrder, ...prev]);
+        fetchNotifications(); // Refresh notifications since new order generates one
+      }
+    } catch (e) {
+      console.error('Error adding order:', e);
+    }
   };
 
-  const updateOrderStatus = (orderId: string, status: Order['status']) => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId 
-        ? { ...order, status, updatedAt: new Date().toISOString() }
-        : order
-    ));
+  const updateOrderStatus = async (orderId: string, status: Order['status']) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        const updatedOrder = await res.json();
+        setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+      }
+    } catch (e) {
+      console.error('Error updating order status:', e);
+    }
   };
 
-  const addReport = (reportData: Omit<DailyReport, 'id' | 'createdAt'>) => {
-    const newReport: DailyReport = {
-      ...reportData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setReports(prev => [...prev, newReport]);
+  const addReport = async (reportData: Omit<DailyReport, 'id' | 'createdAt'>) => {
+    try {
+      const res = await fetch('/api/reports', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(reportData),
+      });
+      if (res.ok) {
+        const newReport = await res.json();
+        setReports(prev => [newReport, ...prev]);
+        // Re-fetch orders because updating report can alter order status
+        fetchOrders();
+      }
+    } catch (e) {
+      console.error('Error adding report:', e);
+    }
   };
 
   const addNotification = (notificationData: Omit<Notification, 'id' | 'createdAt'>) => {
-    const newNotification: Notification = {
-      ...notificationData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setNotifications(prev => [...prev, newNotification]);
+    // Notifications are handled automatically on the backend upon order creation/events
+    console.log('addNotification called client-side (handled by server)', notificationData);
   };
 
-  const markNotificationRead = (notificationId: string) => {
-    setNotifications(prev => prev.map(notification => 
-      notification.id === notificationId 
-        ? { ...notification, isRead: true }
-        : notification
-    ));
+  const markNotificationRead = async (notificationId: string) => {
+    try {
+      const res = await fetch(`/api/notifications/${notificationId}/read`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+      });
+      if (res.ok) {
+        const updatedNotification = await res.json();
+        setNotifications(prev => prev.map(n => n.id === notificationId ? updatedNotification : n));
+      }
+    } catch (e) {
+      console.error('Error marking notification read:', e);
+    }
   };
 
-  const addCustomer = (customerData: Omit<Customer, 'id' | 'createdAt'>) => {
-    const newCustomer: Customer = {
-      ...customerData,
-      id: Date.now().toString(),
-      createdAt: new Date().toISOString(),
-    };
-    setCustomers(prev => [...prev, newCustomer]);
+  const addCustomer = async (customerData: Omit<Customer, 'id' | 'createdAt'>) => {
+    try {
+      const res = await fetch('/api/customers', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(customerData),
+      });
+      if (res.ok) {
+        const newCustomer = await res.json();
+        setCustomers(prev => [...prev, newCustomer]);
+      }
+    } catch (e) {
+      console.error('Error adding customer:', e);
+    }
   };
 
-  const updateCustomer = (customerId: string, customerData: Partial<Customer>) => {
-    setCustomers(prev => prev.map(customer => 
-      customer.id === customerId 
-        ? { ...customer, ...customerData }
-        : customer
-    ));
+  const updateCustomer = async (customerId: string, customerData: Partial<Customer>) => {
+    try {
+      const res = await fetch(`/api/customers/${customerId}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify(customerData),
+      });
+      if (res.ok) {
+        const updatedCustomer = await res.json();
+        setCustomers(prev => prev.map(c => c.id === customerId ? updatedCustomer : c));
+      }
+    } catch (e) {
+      console.error('Error updating customer:', e);
+    }
   };
 
-  const addInventoryItem = (itemData: Omit<Inventory, 'id' | 'lastUpdated'>) => {
-    const newItem: Inventory = {
-      ...itemData,
-      id: Date.now().toString(),
-      lastUpdated: new Date().toISOString(),
-    };
-    setInventory(prev => [...prev, newItem]);
+  const addInventoryItem = async (itemData: Omit<Inventory, 'id' | 'lastUpdated'>) => {
+    try {
+      const res = await fetch('/api/inventory', {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(itemData),
+      });
+      if (res.ok) {
+        const newItem = await res.json();
+        setInventory(prev => [...prev, newItem]);
+      }
+    } catch (e) {
+      console.error('Error adding inventory item:', e);
+    }
   };
 
-  const updateInventoryItem = (itemId: string, itemData: Partial<Inventory>) => {
-    setInventory(prev => prev.map(item => 
-      item.id === itemId 
-        ? { ...item, ...itemData, lastUpdated: new Date().toISOString() }
-        : item
-    ));
+  const updateInventoryItem = async (itemId: string, itemData: Partial<Inventory>) => {
+    try {
+      const res = await fetch(`/api/inventory/${itemId}`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify(itemData),
+      });
+      if (res.ok) {
+        const updatedItem = await res.json();
+        setInventory(prev => prev.map(i => i.id === itemId ? updatedItem : i));
+      }
+    } catch (e) {
+      console.error('Error updating inventory item:', e);
+    }
   };
 
-  const updateRegistrationStatus = (requestId: string, status: 'approved' | 'rejected', reviewedBy: string) => {
-    setRegistrationRequests(prev => prev.map(request => 
-      request.id === requestId 
-        ? { 
-            ...request, 
-            status, 
-            reviewedAt: new Date().toISOString(),
-            reviewedBy 
-          }
-        : request
-    ));
+  const updateRegistrationStatus = async (requestId: string, status: 'approved' | 'rejected', reviewedBy: string) => {
+    try {
+      const res = await fetch(`/api/registrations/${requestId}/status`, {
+        method: 'PATCH',
+        headers: getHeaders(),
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        const updatedRequest = await res.json();
+        setRegistrationRequests(prev => prev.map(r => r.id === requestId ? updatedRequest : r));
+        
+        // Approved status means a new tailor account is created; re-fetch tailors list
+        if (status === 'approved') {
+          fetchTailors();
+        }
+      }
+    } catch (e) {
+      console.error('Error updating registration status:', e);
+    }
   };
 
   const getOrdersByTailor = (tailorId: string) => {

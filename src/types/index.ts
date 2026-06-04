@@ -97,6 +97,17 @@ export interface Customer {
   phone: string;
   address: string;
   notes: string;
+  measurements: {
+    chest?: { inches?: number; cm?: number };
+    waist?: { inches?: number; cm?: number };
+    hips?: { inches?: number; cm?: number };
+    shoulder?: { inches?: number; cm?: number };
+    inseam?: { inches?: number; cm?: number };
+    neck?: { inches?: number; cm?: number };
+    sleeve?: { inches?: number; cm?: number };
+    thigh?: { inches?: number; cm?: number };
+    [key: string]: { inches?: number; cm?: number } | undefined;
+  };
   createdAt: string;
 }
 

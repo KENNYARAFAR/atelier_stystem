@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { LogOut, Scissors, User, FileText, Plus, BarChart3, Users, Bell, Package, Settings, UserPlus } from 'lucide-react';
+import { LogOut, Scissors, User, FileText, Plus, BarChart3, Users, Bell, Package, Settings, UserPlus, ClipboardList } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -29,10 +29,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, onPageChange }) 
   ];
 
   const tailorMenuItems = [
-    { id: 'dashboard', label: 'My Tasks', icon: FileText },
-    { id: 'reports', label: 'Submit Report', icon: BarChart3 },
-    { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'dashboard',      label: 'My Tasks',        icon: FileText        },
+    { id: 'my-orders',     label: 'All My Orders',   icon: ClipboardList   },
+    { id: 'reports',       label: 'Submit Report',   icon: BarChart3       },
+    { id: 'customers',     label: 'Customers',       icon: Users           },
+    { id: 'notifications', label: 'Notifications',   icon: Bell            },
+    { id: 'my-profile',    label: 'My Profile',      icon: User            },
+    { id: 'settings',      label: 'Settings',        icon: Settings        },
   ];
 
   const menuItems = user?.role === 'admin' ? adminMenuItems : tailorMenuItems;

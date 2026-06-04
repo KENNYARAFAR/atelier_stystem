@@ -318,7 +318,6 @@ const AddOrder: React.FC = () => {
                 </p>
               </div>
             )}
-            </div>
           </div>
 
           {/* Instructions */}
