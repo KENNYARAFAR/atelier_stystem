@@ -1,0 +1,86 @@
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+
+// Models
+import User from '../server/src/models/User.js';
+
+// Route Imports
+import authRoutes from '../server/src/routes/auth.js';
+import userRoutes from '../server/src/routes/users.js';
+import orderRoutes from '../server/src/routes/orders.js';
+import reportRoutes from '../server/src/routes/reports.js';
+import notificationRoutes from '../server/src/routes/notifications.js';
+import customerRoutes from '../server/src/routes/customers.js';
+import inventoryRoutes from '../server/src/routes/inventory.js';
+import registrationRoutes from '../server/src/routes/registrations.js';
+
+dotenv.config();
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// Database connection helper for serverless environment
+const connectDB = async () => {
+  if (mongoose.connection.readyState >= 1) {
+    return;
+  }
+  const connStr = process.env.MONGODB_URI;
+  if (!connStr) {
+    throw new Error('MONGODB_URI environment variable is missing.');
+  }
+  await mongoose.connect(connStr);
+};
+
+// Seed function to ensure the admin user exists
+const seedUsers = async () => {
+  const count = await User.countDocuments();
+  if (count === 0) {
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('admin2026', salt);
+
+    await User.create([
+      {
+        name: 'Admin User',
+        email: 'admin@tailoring.com',
+        password: hashedPassword,
+        role: 'admin',
+        isActive: true,
+      }
+    ]);
+    console.log('Database seeded with admin user');
+  }
+};
+
+// Middleware to connect to DB and seed on each invocation
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    await seedUsers();
+    next();
+  } catch (error) {
+    console.error('Database connection error in serverless function:', error);
+    res.status(500).json({ message: 'Database connection failed' });
+  }
+});
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/inventory', inventoryRoutes);
+app.use('/api/registrations', registrationRoutes);
+
+// Root test route
+app.get('/api', (req, res) => {
+  res.send('Tailor Management System API is running...');
+});
+
+export default app;
