@@ -25,14 +25,13 @@ app.use(cors());
 app.use(express.json());
 
 // Database connection helper for serverless environment
+const ATLAS_URI = 'mongodb+srv://kennyarafatt_db_user:zN5e1Q8eZziyFjhj@cluster0.rdotdpi.mongodb.net/tailor_system?appName=Cluster0';
+
 const connectDB = async () => {
   if (mongoose.connection.readyState >= 1) {
     return;
   }
-  const connStr = process.env.MONGODB_URI;
-  if (!connStr) {
-    throw new Error('MONGODB_URI environment variable is missing.');
-  }
+  const connStr = process.env.MONGODB_URI || ATLAS_URI;
   await mongoose.connect(connStr);
 };
 
