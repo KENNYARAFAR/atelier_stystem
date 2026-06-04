@@ -24,6 +24,8 @@ const STATUS_COLORS: Record<string, string> = {
 const Dashboard: React.FC = () => {
   const { user } = useAuth();
   const { orders, reports, getOrdersByTailor, updateOrderStatus } = useData();
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   /* ─── Admin Dashboard ─────────────────────────────────────────── */
   if (user?.role === 'admin') {
@@ -131,8 +133,6 @@ const Dashboard: React.FC = () => {
   /* ─── Tailor Dashboard ────────────────────────────────────────── */
   const tailorOrders = getOrdersByTailor(user!.id);
   const myReports    = reports.filter(r => r.userId === user!.id);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleStatusAdvance = async (orderId: string, currentStatus: string) => {
     const nextStatus = STATUS_CYCLE[currentStatus];
