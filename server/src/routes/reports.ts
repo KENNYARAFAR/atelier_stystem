@@ -1,7 +1,7 @@
 import { Router, Response } from 'express';
-import DailyReport from '../models/DailyReport.js';
-import Order from '../models/Order.js';
-import { protect, AuthRequest } from '../middleware/auth.js';
+import DailyReport from '../models/DailyReport';
+import Order from '../models/Order';
+import { protect, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 

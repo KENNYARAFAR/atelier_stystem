@@ -2,18 +2,18 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import bcrypt from 'bcryptjs';
-import connectDB from './config/db.js';
-import User from './models/User.js';
+import connectDB from './config/db';
+import User from './models/User';
 
 // Route Imports
-import authRoutes from './routes/auth.js';
-import userRoutes from './routes/users.js';
-import orderRoutes from './routes/orders.js';
-import reportRoutes from './routes/reports.js';
-import notificationRoutes from './routes/notifications.js';
-import customerRoutes from './routes/customers.js';
-import inventoryRoutes from './routes/inventory.js';
-import registrationRoutes from './routes/registrations.js';
+import authRoutes from './routes/auth';
+import userRoutes from './routes/users';
+import orderRoutes from './routes/orders';
+import reportRoutes from './routes/reports';
+import notificationRoutes from './routes/notifications';
+import customerRoutes from './routes/customers';
+import inventoryRoutes from './routes/inventory';
+import registrationRoutes from './routes/registrations';
 
 dotenv.config();
 

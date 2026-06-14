@@ -5,17 +5,17 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
 // Models
-import User from '../server/src/models/User.js';
+import User from '../server/src/models/User';
 
 // Route Imports
-import authRoutes from '../server/src/routes/auth.js';
-import userRoutes from '../server/src/routes/users.js';
-import orderRoutes from '../server/src/routes/orders.js';
-import reportRoutes from '../server/src/routes/reports.js';
-import notificationRoutes from '../server/src/routes/notifications.js';
-import customerRoutes from '../server/src/routes/customers.js';
-import inventoryRoutes from '../server/src/routes/inventory.js';
-import registrationRoutes from '../server/src/routes/registrations.js';
+import authRoutes from '../server/src/routes/auth';
+import userRoutes from '../server/src/routes/users';
+import orderRoutes from '../server/src/routes/orders';
+import reportRoutes from '../server/src/routes/reports';
+import notificationRoutes from '../server/src/routes/notifications';
+import customerRoutes from '../server/src/routes/customers';
+import inventoryRoutes from '../server/src/routes/inventory';
+import registrationRoutes from '../server/src/routes/registrations';
 
 dotenv.config();
 

@@ -1,8 +1,8 @@
 import { Router, Response } from 'express';
-import Order from '../models/Order.js';
-import Notification from '../models/Notification.js';
-import User from '../models/User.js';
-import { protect, AuthRequest } from '../middleware/auth.js';
+import Order from '../models/Order';
+import Notification from '../models/Notification';
+import User from '../models/User';
+import { protect, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 

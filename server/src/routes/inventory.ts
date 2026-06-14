@@ -1,6 +1,6 @@
 import { Router, Response } from 'express';
-import Inventory from '../models/Inventory.js';
-import { protect, AuthRequest } from '../middleware/auth.js';
+import Inventory from '../models/Inventory';
+import { protect, AuthRequest } from '../middleware/auth';
 
 const router = Router();
 
